@@ -25,6 +25,40 @@ jobs:
       - name: Run MLB Analysis
         run: Rscript mlb_undervalued_analysis.R
 
+      - name: Commit and push results
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add -A
+          git commit -m "Daily update: $(date)" || true
+          git push || true
+name: Daily MLB Analysis
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.3.1'
+
+      - name: Install R packages
+        run: |
+          install.packages(c("tidyverse", "ggplot2"))
+        shell: Rscript {0}
+
+      - name: Run MLB Analysis
+        run: Rscript mlb_undervalued_analysis.R
+
       - name: Commit and push changes
         run: |
           git config --local user.email "action@github.com"
