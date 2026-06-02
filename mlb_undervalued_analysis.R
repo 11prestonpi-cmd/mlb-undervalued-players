@@ -181,6 +181,150 @@ ggsave(paste0("output/salary_vs_performance_", today_date, ".png"),
 cat("✓ Saved salary vs performance plot\n")
 
 # ============================================================================
+# CREATE HTML REPORT
+# ============================================================================
+
+cat("Creating HTML report...\n")
+
+top_25 <- analysis %>% head(25)
+
+html_report <- paste(
+  "<!DOCTYPE html>",
+  "<html>",
+  "<head>",
+  "<meta charset='utf-8'>",
+  "<meta name='viewport' content='width=device-width, initial-scale=1'>",
+  "<title>MLB Undervalued Players - ", today_date, "</title>",
+  "<style>",
+  "body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }",
+  ".container { max-width: 1400px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }",
+  "h1 { color: #003087; border-bottom: 4px solid #003087; padding-bottom: 15px; margin-bottom: 10px; }",
+  ".subtitle { color: #666; font-size: 16px; margin-bottom: 20px; }",
+  ".live-badge { background: #ff4444; color: white; padding: 5px 12px; border-radius: 20px; font-weight: bold; font-size: 12px; }",
+  "table { width: 100%; border-collapse: collapse; margin: 20px 0; }",
+  "th { background: #003087; color: white; padding: 12px; text-align: left; font-weight: bold; }",
+  "td { padding: 12px; border-bottom: 1px solid #ddd; }",
+  "tr:hover { background: #f5f5f5; }",
+  ".undervalued { color: darkgreen; font-weight: bold; }",
+  ".good-value { color: green; font-weight: bold; }",
+  ".fair-value { color: orange; font-weight: bold; }",
+  ".overvalued { color: red; font-weight: bold; }",
+  ".info-box { background: #f0f0f0; padding: 15px; border-left: 4px solid #003087; margin: 20px 0; border-radius: 5px; }",
+  ".stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin: 20px 0; }",
+  ".stat-card { background: #f9f9f9; padding: 20px; border-radius: 8px; text-align: center; border: 1px solid #ddd; }",
+  ".stat-number { font-size: 28px; font-weight: bold; color: #003087; }",
+  ".stat-label { color: #666; font-size: 14px; margin-top: 5px; }",
+  "img { max-width: 100%; height: auto; margin: 20px 0; border-radius: 8px; }",
+  ".footer { text-align: center; color: #999; font-size: 12px; margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; }",
+  "</style>",
+  "</head>",
+  "<body>",
+  "<div class='container'>",
+  "<h1>⚾ MLB Undervalued Players Analysis <span class='live-badge'>LIVE 2026</span></h1>",
+  "<div class='subtitle'>Last Updated: <strong>", format(today_date, "%B %d, %Y"), " at ", format(Sys.time(), "%H:%M:%S"), " UTC</strong></div>",
+  "",
+  "<div class='info-box'>",
+  "<p><strong>How This Works:</strong> This analysis identifies MLB players who are overperforming relative to their salary.</p>",
+  "<p><strong>Value Score:</strong> Estimated WAR ÷ Salary (millions). Higher = Better value.</p>",
+  "<p><strong>Updates:</strong> Every day at 2 AM UTC via GitHub Actions</p>",
+  "</div>",
+  "",
+  "<div class='stats-grid'>",
+  "<div class='stat-card'>",
+  "<div class='stat-number'>", nrow(analysis), "</div>",
+  "<div class='stat-label'>Total Players</div>",
+  "</div>",
+  "<div class='stat-card'>",
+  "<div class='stat-number'>", nrow(batting_stats), "</div>",
+  "<div class='stat-label'>Qualified Batters</div>",
+  "</div>",
+  "<div class='stat-card'>",
+  "<div class='stat-number'>", n_distinct(batting_daily$Date), "</div>",
+  "<div class='stat-label'>Games Analyzed</div>",
+  "</div>",
+  "<div class='stat-card'>",
+  "<div class='stat-number'>", as.character(today_date), "</div>",
+  "<div class='stat-label'>Current Date</div>",
+  "</div>",
+  "</div>",
+  "",
+  "<h2>Top 25 Undervalued Players</h2>",
+  "<table>",
+  "<thead><tr>",
+  "<th>Rank</th>",
+  "<th>Player</th>",
+  "<th>Team</th>",
+  "<th>Salary ($M)</th>",
+  "<th>HR</th>",
+  "<th>Hits</th>",
+  "<th>Est. WAR</th>",
+  "<th>Value Score</th>",
+  "<th>Status</th>",
+  "</tr></thead>",
+  "<tbody>",
+  paste(apply(cbind(seq(1, nrow(top_25)), top_25), 1, function(row) {
+    rank_num <- row[1]
+    player_name <- row[3]
+    team <- row[4]
+    salary <- round(as.numeric(row[5]), 2)
+    hr <- row[6]
+    hits <- row[7]
+    war <- round(as.numeric(row[9]), 2)
+    value <- round(as.numeric(row[10]), 3)
+    status <- row[11]
+    
+    status_class <- tolower(gsub(" ⭐", "", status))
+    status_class <- gsub(" ", "-", status_class)
+    
+    paste(
+      "<tr>",
+      "<td><strong>", rank_num, "</strong></td>",
+      "<td>", player_name, "</td>",
+      "<td>", team, "</td>",
+      "<td>$", salary, "M</td>",
+      "<td>", hr, "</td>",
+      "<td>", hits, "</td>",
+      "<td>", war, "</td>",
+      "<td>", value, "</td>",
+      "<td class='", status_class, "'>", status, "</td>",
+      "</tr>"
+    )
+  }), collapse = ""),
+  "</tbody>",
+  "</table>",
+  "",
+  "<h2>Visualizations</h2>",
+  "<p>Click images to view full size</p>",
+  "<img src='undervalued_value_score_", today_date, ".png' alt='Value Score Chart'>",
+  "<img src='salary_vs_performance_", today_date, ".png' alt='Salary vs Performance'>",
+  "",
+  "<div class='info-box'>",
+  "<h3>Methodology</h3>",
+  "<ul>",
+  "<li><strong>Data Sources:</strong> Baseball Reference (stats) + Spotrac (salaries)</li>",
+  "<li><strong>WAR Estimate:</strong> (HR × 1.4 + Hits × 0.3) ÷ 100</li>",
+  "<li><strong>Value Score:</strong> Estimated WAR ÷ Salary (millions)</li>",
+  "<li><strong>Minimum AB:</strong> 50+ at-bats for qualification</li>",
+  "</ul>",
+  "</div>",
+  "",
+  "<div class='footer'>",
+  "<p>Report generated automatically by GitHub Actions | Data sourced from MLB API</p>",
+  "<p>Last updated: ", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), " UTC</p>",
+  "</div>",
+  "",
+  "</div>",
+  "</body>",
+  "</html>",
+  sep = "\n"
+)
+
+writeLines(html_report, "output/index.html")
+
+cat("✓ Saved HTML report\n")
+
+
+# ============================================================================
 # SUMMARY STATISTICS
 # ============================================================================
 
