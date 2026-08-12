@@ -18,7 +18,7 @@ jobs:
           r-version: '4.3.1'
       
       - name: Install packages
-        run: install.packages(c("baseballr", "rvest", "tidyverse", "ggplot2"), "ggrepel")
+        run: install.packages(c("baseballr", "rvest", "tidyverse", "ggplot2", "ggrepel"))
         shell: Rscript {0}
       
       - name: Run analysis
